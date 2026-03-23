@@ -144,7 +144,7 @@ export default function TaskList() {
         )}
 
         <div className="space-y-3">
-          <AnimatePresence mode="popLayout">
+          <AnimatePresence>
             {filteredTasks.map((task) => (
               <TaskItem key={task.id} task={task} />
             ))}
