@@ -21,7 +21,8 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 ```text
 artifacts-monorepo/
 ├── artifacts/              # Deployable applications
-│   └── api-server/         # Express API server
+│   ├── api-server/         # Express API server
+│   └── task-manager/       # React + Vite frontend (Task Manager app)
 ├── lib/                    # Shared libraries
 │   ├── api-spec/           # OpenAPI spec + Orval codegen config
 │   ├── api-client-react/   # Generated React Query hooks
@@ -33,6 +34,42 @@ artifacts-monorepo/
 ├── tsconfig.base.json      # Shared TS options (composite, bundler resolution, es2022)
 ├── tsconfig.json           # Root TS project references
 └── package.json            # Root package with hoisted devDeps
+```
+
+## Features
+
+### Task Manager App
+
+Full-stack task management app with:
+
+- **Frontend**: React + Vite + TypeScript at `/` (artifact: `task-manager`)
+- **Backend**: Express 5 API at `/api` (artifact: `api-server`)
+- **Database**: PostgreSQL with Drizzle ORM (`tasks` table)
+
+#### API Endpoints
+
+- `GET /api/tasks` — list all tasks (supports `?completed=boolean` and `?search=string`)
+- `POST /api/tasks` — create a task (body: `{ title, description? }`)
+- `GET /api/tasks/:id` — get a single task
+- `PUT /api/tasks/:id` — update a task (body: `{ title?, description?, completed? }`)
+- `DELETE /api/tasks/:id` — delete a task
+
+#### Frontend Pages
+
+- `/` — TaskList with search bar, All/Pending/Done filters, progress indicator
+- `/tasks/new` — TaskForm to create a task (validated, title required)
+- `/tasks/:id/edit` — TaskForm to edit an existing task
+
+#### Task Schema
+
+```typescript
+interface Task {
+  id: string;         // UUID
+  title: string;      // required, max 255
+  description: string; // optional, max 1000
+  completed: boolean;
+  createdAt: Date;
+}
 ```
 
 ## TypeScript & Composite Projects
