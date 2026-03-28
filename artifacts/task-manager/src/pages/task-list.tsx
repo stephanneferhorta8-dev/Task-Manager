@@ -123,7 +123,11 @@ export default function TaskList() {
         {error && (
           <div className="p-6 bg-destructive/10 text-destructive border border-destructive/20 rounded-xl flex flex-col items-center justify-center text-center">
             <p className="font-bold mb-1">Failed to load tasks</p>
-            <p className="text-sm opacity-80">Please check your connection and try again.</p>
+            <p className="text-sm opacity-80">
+              {(error as { status?: number; message?: string })?.status
+                ? `Error ${(error as { status?: number }).status}: ${(error as { message?: string }).message ?? "Unknown error"}`
+                : "Please check your connection and try again."}
+            </p>
           </div>
         )}
 
