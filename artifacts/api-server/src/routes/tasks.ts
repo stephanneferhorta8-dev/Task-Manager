@@ -14,6 +14,11 @@ import {
 const router: IRouter = Router();
 
 router.get("/tasks", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized", message: "You must be logged in to view tasks" });
+    return;
+  }
+
   try {
     const queryResult = GetTasksQueryParams.safeParse(req.query);
     if (!queryResult.success) {
@@ -22,8 +27,9 @@ router.get("/tasks", async (req, res) => {
     }
 
     const { completed, search } = queryResult.data;
+    const userId = req.user.id;
 
-    const conditions = [];
+    const conditions = [eq(tasksTable.userId, userId)];
 
     if (completed !== undefined) {
       conditions.push(eq(tasksTable.completed, completed));
@@ -35,13 +41,15 @@ router.get("/tasks", async (req, res) => {
         or(
           ilike(tasksTable.title, term),
           ilike(tasksTable.description, term)
-        )
+        )!
       );
     }
 
-    const tasks = conditions.length > 0
-      ? await db.select().from(tasksTable).where(and(...conditions)).orderBy(tasksTable.createdAt)
-      : await db.select().from(tasksTable).orderBy(tasksTable.createdAt);
+    const tasks = await db
+      .select()
+      .from(tasksTable)
+      .where(and(...conditions))
+      .orderBy(tasksTable.createdAt);
 
     res.json(tasks);
   } catch (err) {
@@ -51,6 +59,11 @@ router.get("/tasks", async (req, res) => {
 });
 
 router.post("/tasks", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized", message: "You must be logged in to create tasks" });
+    return;
+  }
+
   try {
     const bodyResult = CreateTaskBody.safeParse(req.body);
     if (!bodyResult.success) {
@@ -62,6 +75,7 @@ router.post("/tasks", async (req, res) => {
 
     const [task] = await db.insert(tasksTable).values({
       id: randomUUID(),
+      userId: req.user.id,
       title,
       description: description ?? "",
       completed: false,
@@ -75,6 +89,11 @@ router.post("/tasks", async (req, res) => {
 });
 
 router.get("/tasks/:id", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized", message: "You must be logged in" });
+    return;
+  }
+
   try {
     const paramsResult = GetTaskParams.safeParse(req.params);
     if (!paramsResult.success) {
@@ -82,7 +101,10 @@ router.get("/tasks/:id", async (req, res) => {
       return;
     }
 
-    const [task] = await db.select().from(tasksTable).where(eq(tasksTable.id, paramsResult.data.id));
+    const [task] = await db
+      .select()
+      .from(tasksTable)
+      .where(and(eq(tasksTable.id, paramsResult.data.id), eq(tasksTable.userId, req.user.id)));
 
     if (!task) {
       res.status(404).json({ error: "Not Found", message: "Task not found" });
@@ -97,6 +119,11 @@ router.get("/tasks/:id", async (req, res) => {
 });
 
 router.put("/tasks/:id", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized", message: "You must be logged in" });
+    return;
+  }
+
   try {
     const paramsResult = UpdateTaskParams.safeParse(req.params);
     if (!paramsResult.success) {
@@ -110,8 +137,12 @@ router.put("/tasks/:id", async (req, res) => {
       return;
     }
 
-    const existing = await db.select().from(tasksTable).where(eq(tasksTable.id, paramsResult.data.id));
-    if (existing.length === 0) {
+    const [existing] = await db
+      .select()
+      .from(tasksTable)
+      .where(and(eq(tasksTable.id, paramsResult.data.id), eq(tasksTable.userId, req.user.id)));
+
+    if (!existing) {
       res.status(404).json({ error: "Not Found", message: "Task not found" });
       return;
     }
@@ -122,9 +153,10 @@ router.put("/tasks/:id", async (req, res) => {
     if (description !== undefined) updateData.description = description;
     if (completed !== undefined) updateData.completed = completed;
 
-    const [updated] = await db.update(tasksTable)
+    const [updated] = await db
+      .update(tasksTable)
       .set(updateData)
-      .where(eq(tasksTable.id, paramsResult.data.id))
+      .where(and(eq(tasksTable.id, paramsResult.data.id), eq(tasksTable.userId, req.user.id)))
       .returning();
 
     res.json(updated);
@@ -135,6 +167,11 @@ router.put("/tasks/:id", async (req, res) => {
 });
 
 router.delete("/tasks/:id", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized", message: "You must be logged in" });
+    return;
+  }
+
   try {
     const paramsResult = DeleteTaskParams.safeParse(req.params);
     if (!paramsResult.success) {
@@ -142,13 +179,19 @@ router.delete("/tasks/:id", async (req, res) => {
       return;
     }
 
-    const existing = await db.select().from(tasksTable).where(eq(tasksTable.id, paramsResult.data.id));
-    if (existing.length === 0) {
+    const [existing] = await db
+      .select()
+      .from(tasksTable)
+      .where(and(eq(tasksTable.id, paramsResult.data.id), eq(tasksTable.userId, req.user.id)));
+
+    if (!existing) {
       res.status(404).json({ error: "Not Found", message: "Task not found" });
       return;
     }
 
-    await db.delete(tasksTable).where(eq(tasksTable.id, paramsResult.data.id));
+    await db
+      .delete(tasksTable)
+      .where(and(eq(tasksTable.id, paramsResult.data.id), eq(tasksTable.userId, req.user.id)));
 
     res.status(204).send();
   } catch (err) {
