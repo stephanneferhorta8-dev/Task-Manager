@@ -14,7 +14,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <CheckSquare className="w-5 h-5" />
             </div>
             <h1 className="text-xl font-bold font-display tracking-tight text-foreground">
-              TaskFlow
+              FluxxTask
             </h1>
           </Link>
 

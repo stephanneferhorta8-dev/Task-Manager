@@ -247,7 +247,7 @@ export default function AuthPage() {
             <CheckSquare className="w-8 h-8" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-foreground tracking-tight">TaskFlow</h1>
+            <h1 className="text-3xl font-bold text-foreground tracking-tight">FluxxTask</h1>
             <p className="mt-1.5 text-muted-foreground">Organiza tu trabajo de forma hermosa</p>
           </div>
         </div>
